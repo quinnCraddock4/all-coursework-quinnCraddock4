@@ -1,0 +1,52 @@
+db.createUser({
+  user: "Quinn",
+  pwd: "Secret",
+  roles: [ { role: "readWrite", db: "sample_mflix" } ]
+})
+
+db.movies.insertOne({
+  title: "Movie",
+  year: 2010,
+})
+
+db.theaters.insertOne({
+    location: {
+      address: {
+        street1: 'my house',
+        city: 'Sherman',
+        state: 'TX',
+        zipcode: '75092'
+      }
+}})
+
+db.comments.insertOne({
+    name: 'Quinn Craddock',
+    email: 'quinn@fakegmail.com',
+    movie_id: ObjectId('573a1391f29313caabcd8543'),
+    text: 'Quisquam doloremque odio nostrum enim accusantium deleniti. Itaque magni vitae facere. Expedita distinctio et possimus. Quas optio rem architecto quis distinctio magni.',
+    date: ISODate('1983-02-24T17:57:36.000Z')
+})
+
+db.movies.updateOne(
+  { title: "The Ace of Hearts" },
+  { $set: { "imdb.rating": 9.5 } } 
+)
+
+db.movies.updateOne(
+  { title: "The Ace of Hearts" },
+  { $push: { "countries": "France" } } 
+)
+
+db.movies.updateOne(
+  { title: "The Ace of Hearts" },
+  { $push: { "genres": "Comedy" } } 
+)
+
+db.movies.updateOne(
+  { title: "The Ace of Hearts" },
+  { $set: { "cast": ['john bob', 'bobby john', 'Jonthan bobathan'] } } 
+)
+
+db.theaters.deleteOne( { theaterId: 1023 })
+
+db.dropUser("Quinn")

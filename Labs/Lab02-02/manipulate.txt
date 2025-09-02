@@ -1,0 +1,58 @@
+db.Users.insertOne({
+  userId: 3,
+  email: "charlie@example.com",
+  password: "hashed_pw_3",
+  fullName: "Charlie Davis",
+  givenName: "Charlie",
+  familyName: "Davis",
+  role: "Developer"
+});
+
+db.Bugs.insertOne({
+  bugId: 103,
+  title: "Error on logout",
+  description: "App throws error when logging out",
+  stepsToReproduce: "Click logout",
+  authorId: 3,
+  createdAt: new Date(),
+  classification: "unclassified"
+});
+
+db.Bugs.updateOne(
+  { bugId: 103 },
+  { $set: { assignedToId: 2 } }
+);
+
+db.Comments.insertOne({
+  commentId: 3,
+  bugId: 103,
+  authorId: 2,
+  content: "Confirmed the issue occurs.",
+  createdAt: new Date()
+});
+
+db.TestCases.insertOne({
+  testCaseId: 3,
+  bugId: 103,
+  qaId: 2,
+  result: "failed",
+  createdAt: new Date()
+});
+
+db.DeveloperHours.insertOne({
+  hourEntryId: 3,
+  bugId: 103,
+  developerId: 3,
+  hours: 4,
+  loggedAt: new Date()
+});
+
+db.Bugs.updateOne(
+  { bugId: 103 },
+  { $set: { fixDate: new Date(), fixVersion: "v1.0.5" } }
+);
+
+db.Bugs.updateOne(
+  { bugId: 103 },
+  { $set: { classification: "closed" } }
+);

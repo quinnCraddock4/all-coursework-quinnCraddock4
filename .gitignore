@@ -1,0 +1,26 @@
+node_modules
+
+# Environment variables
+.env
+
+# Build output
+dist/
+build/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-error.log
+
+# Coverage reports
+coverage/
+
+# OS generated files
+.DS_Store
+
+# Package files
+*.tgz
+
+# IDE/editor folders
+.vscode/
+.idea/

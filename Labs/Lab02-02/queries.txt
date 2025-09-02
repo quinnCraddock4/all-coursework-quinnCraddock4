@@ -1,0 +1,89 @@
+
+db.Bugs.find({ authorId: 1 });
+
+db.Bugs.find({ assignedToId: 1 });
+
+db.Bugs.find({ $or: [ { authorId: 1 }, { assignedToId: 1 } ] });
+
+db.Bugs.find({ classification: "unclassified" });
+
+db.Bugs.find({ classification: "approved", fixDate: { $exists: false } });
+
+db.Bugs.find({ fixDate: { $exists: true }, classification: { $ne: "closed" } });
+
+db.Bugs.find({ $or: [ { stepsToReproduce: "" }, { stepsToReproduce: { $exists: false } } ] });
+
+db.Bugs.aggregate([
+  {
+    $lookup: {
+      from: "TestCases",
+      localField: "bugId",
+      foreignField: "bugId",
+      as: "testcases"
+    }
+  },
+  { $match: { "testcases.0": { $exists: false } } }
+]);
+
+db.Bugs.aggregate([
+  {
+    $lookup: {
+      from: "DeveloperHours",
+      localField: "bugId",
+      foreignField: "bugId",
+      as: "hours"
+    }
+  },
+  { $match: { "hours.0": { $exists: false } } }
+]);
+
+db.Bugs.aggregate([
+  {
+    $lookup: {
+      from: "Comments",
+      localField: "bugId",
+      foreignField: "bugId",
+      as: "comments"
+    }
+  },
+  {
+    $project: {
+      bugId: 1,
+      title: 1,
+      commentCount: { $size: "$comments" }
+    }
+  }
+]);
+
+
+db.Bugs.aggregate([
+  {
+    $lookup: {
+      from: "DeveloperHours",
+      localField: "bugId",
+      foreignField: "bugId",
+      as: "hours"
+    }
+  },
+  {
+    $project: {
+      bugId: 1,
+      title: 1,
+      totalHours: { $sum: "$hours.hours" }
+    }
+  }
+]);
+
+db.Bugs.aggregate([
+  {
+    $lookup: {
+      from: "TestCases",
+      localField: "bugId",
+      foreignField: "bugId",
+      as: "testcases"
+    }
+  },
+  {
+    $match: { "testcases.result": "failed" }
+  }
+]);

@@ -1,0 +1,140 @@
+
+db.Users.createIndex({ email: 1 });
+db.Users.createIndex({ role: 1 });
+
+db.Bugs.createIndex({ authorId: 1 });
+db.Bugs.createIndex({ assignedToId: 1 });
+db.Bugs.createIndex({ classification: 1 });
+
+db.BugEdits.createIndex({ bugId: 1 });
+db.BugEdits.createIndex({ editorId: 1 });
+
+db.Comments.createIndex({ bugId: 1 });
+db.Comments.createIndex({ authorId: 1 });
+
+db.TestCases.createIndex({ bugId: 1 });
+db.TestCases.createIndex({ qaId: 1 });
+
+db.DeveloperHours.createIndex({ bugId: 1 });
+db.DeveloperHours.createIndex({ developerId: 1 });
+
+
+// === AI generated Sample Data ===
+
+// Users
+db.Users.insertMany([
+  {
+    userId: 1,
+    email: "alice@example.com",
+    password: "hashed_pw_1",
+    fullName: "Alice Smith",
+    givenName: "Alice",
+    familyName: "Smith",
+    role: "Developer"
+  },
+  {
+    userId: 2,
+    email: "bob@example.com",
+    password: "hashed_pw_2",
+    fullName: "Bob Johnson",
+    givenName: "Bob",
+    familyName: "Johnson",
+    role: "Quality Analyst"
+  }
+]);
+
+// Bugs
+db.Bugs.insertMany([
+  {
+    bugId: 101,
+    title: "Login button not working",
+    description: "Clicking login does nothing",
+    stepsToReproduce: "Open app → enter credentials → click login",
+    authorId: 1,
+    createdAt: new Date(),
+    classification: "unclassified",
+    assignedToId: 2
+  },
+  {
+    bugId: 102,
+    title: "Crash on settings page",
+    description: "Navigating to settings causes crash",
+    stepsToReproduce: "",
+    authorId: 2,
+    createdAt: new Date(),
+    classification: "approved",
+    assignedToId: 1
+  }
+]);
+
+// BugEdits
+db.BugEdits.insertMany([
+  {
+    bugEditId: 1,
+    bugId: 101,
+    editorId: 1,
+    editedAt: new Date(),
+    changeDescription: "Initial bug creation"
+  },
+  {
+    bugEditId: 2,
+    bugId: 102,
+    editorId: 2,
+    editedAt: new Date(),
+    changeDescription: "Classification set to approved"
+  }
+]);
+
+// Comments
+db.Comments.insertMany([
+  {
+    commentId: 1,
+    bugId: 101,
+    authorId: 2,
+    content: "I can reproduce this issue.",
+    createdAt: new Date()
+  },
+  {
+    commentId: 2,
+    bugId: 102,
+    authorId: 1,
+    content: "Looking into the crash logs.",
+    createdAt: new Date()
+  }
+]);
+
+// TestCases
+db.TestCases.insertMany([
+  {
+    testCaseId: 1,
+    bugId: 101,
+    qaId: 2,
+    result: "failed",
+    createdAt: new Date()
+  },
+  {
+    testCaseId: 2,
+    bugId: 102,
+    qaId: 2,
+    result: "passed",
+    createdAt: new Date()
+  }
+]);
+
+// DeveloperHours
+db.DeveloperHours.insertMany([
+  {
+    hourEntryId: 1,
+    bugId: 101,
+    developerId: 1,
+    hours: 3,
+    loggedAt: new Date()
+  },
+  {
+    hourEntryId: 2,
+    bugId: 102,
+    developerId: 1,
+    hours: 2,
+    loggedAt: new Date()
+  }
+]);
