@@ -24,3 +24,6 @@ coverage/
 # IDE/editor folders
 .vscode/
 .idea/
+
+# Databases
+*.archive
