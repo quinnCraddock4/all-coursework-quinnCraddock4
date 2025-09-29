@@ -1,0 +1,65 @@
+db.listingsAndReviews.insertOne({
+  name: "My house",
+  property_type: "House",
+  price: 1000
+})
+
+db.listingsAndReviews.find()
+
+db.listingsAndReviews.find({property_type: "Apartment"})
+
+db.listingsAndReviews.updateOne(
+  {_id: "10091713"},
+  {$set: {name: "newName"}}
+)
+
+db.listingsAndReviews.deleteOne({_id: "10091713" })
+
+db.listingsAndReviews.find({price: {$gt: 200}})
+
+db.listingsAndReviews.createIndex({name: 1})
+
+db.listingsAndReviews.find({}, {name: 1, price: 1})
+
+db.listingsAndReviews.find().limit(5)
+
+db.listingsAndReviews.findOne({_id: '10220130'})
+
+db.listingsAndReviews.updateOne(
+  {_id: '10220130'},
+  {$set: {price: 250}}
+)
+
+db.listingsAndReviews.deleteMany({property_type: "House"})
+
+db.listingsAndReviews.find({name: {$regex: "Luxury"}})
+
+db.createCollection("guests")
+
+db.guests.insertOne({
+  name: "Quinn Craddock",
+  age: 21,
+  email: "notmy@gmail.com"
+})
+
+db.guests.find()
+
+//not sure how this works since wont the document added have a diffrent ObjectId when its inserted at a diffrent time.
+db.guests.updateOne(
+  {_id: ObjectId("'68d196cdae24ecba1a964033'")},
+  {$set: {age: 30}}
+)
+
+db.listingsAndReviews.aggregate([
+  {$group: {_id: "$address.market", count: {$sum: 1}}},
+  {$sort: {count: -1}},
+  {$limit: 5}
+])
+
+db.guests.find({age: {$gt: 30}})
+
+db.listingsAndReviews.aggregate([
+  {$group: {_id: "$property_type", averagePrice: {$avg: "$price"}}},
+  {$sort: {averagePrice: -1}}
+])
+
