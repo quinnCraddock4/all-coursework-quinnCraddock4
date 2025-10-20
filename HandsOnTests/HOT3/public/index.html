@@ -1,0 +1,88 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>HOT3 Products</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+            margin: 2rem;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        th,
+        td {
+            border: 1px solid #e2e8f0;
+            padding: 8px 10px;
+            text-align: left;
+        }
+
+        th {
+            background: #f8fafc;
+        }
+
+        .price {
+            text-align: right;
+        }
+
+        .error {
+            color: #b91c1c;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Products</h1>
+    <div id="root">Loading…</div>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script>
+        const { useEffect, useState } = React;
+
+        const App = () => {
+            const [products, setProducts] = useState([]);
+            const [error, setError] = useState('');
+
+            useEffect(() => {
+                fetch('/api/products')
+                    .then(r => r.ok ? r.json() : Promise.reject(new Error('Failed to load products')))
+                    .then(setProducts)
+                    .catch(err => setError(err.message));
+            }, []);
+
+            if (error) return React.createElement('div', { className: 'error' }, error);
+
+            return React.createElement(
+                'table',
+                null,
+                React.createElement('thead', null,
+                    React.createElement('tr', null,
+                        React.createElement('th', null, 'Name'),
+                        React.createElement('th', null, 'Description'),
+                        React.createElement('th', null, 'Category'),
+                        React.createElement('th', null, 'Price')
+                    )
+                ),
+                React.createElement('tbody', null,
+                    products.map(p => React.createElement('tr', { key: p._id },
+                        React.createElement('td', null, p.name || ''),
+                        React.createElement('td', null, p.description || ''),
+                        React.createElement('td', null, p.category || ''),
+                        React.createElement('td', { className: 'price' }, typeof p.price === 'number' ? p.price.toFixed(2) : '')
+                    ))
+                )
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(React.createElement(App));
+    </script>
+</body>
+
+</html>
