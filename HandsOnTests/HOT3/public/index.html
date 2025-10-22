@@ -70,12 +70,14 @@
                     )
                 ),
                 React.createElement('tbody', null,
-                    products.map(p => React.createElement('tr', { key: p._id },
-                        React.createElement('td', null, p.name || ''),
-                        React.createElement('td', null, p.description || ''),
-                        React.createElement('td', null, p.category || ''),
-                        React.createElement('td', { className: 'price' }, typeof p.price === 'number' ? p.price.toFixed(2) : '')
-                    ))
+                    products
+                        .filter(p => p.name && p.name.trim() !== '') // Filter out products with no name
+                        .map(p => React.createElement('tr', { key: p._id },
+                            React.createElement('td', null, p.name || 'N/A'),
+                            React.createElement('td', null, p.description || 'No description'),
+                            React.createElement('td', null, p.category || 'Uncategorized'),
+                            React.createElement('td', { className: 'price' }, typeof p.price === 'number' ? p.price.toFixed(2) : 'N/A')
+                        ))
                 )
             );
         };
