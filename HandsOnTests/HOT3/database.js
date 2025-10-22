@@ -39,7 +39,16 @@ export const findProductById = async (productId) => {
 export const findProductByName = async (productName) => {
     const { client, db } = await connect();
     try {
-        const product = await db.collection('products').findOne({ name: productName });
+        const decodedName = decodeURIComponent(productName).trim();
+
+        let product = await db.collection('products').findOne({ name: decodedName });
+
+        if (!product) {
+            product = await db.collection('products').findOne({
+                name: { $regex: new RegExp(`^${decodedName}$`, 'i') }
+            });
+        }
+
         return product;
     } finally {
         await client.close();
