@@ -1,94 +1,181 @@
 import express from 'express';
 import Joi from 'joi';
+
+import hasRole from '../../middleware/hasRole.js';
+import isAuthenticated from '../../middleware/isAuthenticated.js';
+import validate from '../../middleware/validate.js';
+import validId from '../../middleware/validId.js';
 import {
-    findAllProducts,
+    deleteProduct,
     findProductById,
     findProductByName,
     insertProduct,
+    searchProducts,
     updateProduct,
-    deleteProduct,
 } from '../../database.js';
 
 const router = express.Router();
 
-const productSchema = Joi.object({
+const newProductSchema = Joi.object({
+    name: Joi.string().trim().min(1).required(),
+    description: Joi.string().trim().allow('').default(''),
+    category: Joi.string().trim().min(1).required(),
+    price: Joi.number().min(0).required(),
+});
+
+const updateProductSchema = Joi.object({
     name: Joi.string().trim().min(1),
     description: Joi.string().trim().allow(''),
     category: Joi.string().trim().min(1),
     price: Joi.number().min(0),
+}).min(1);
+
+const searchSchema = Joi.object({
+    keywords: Joi.string().trim().allow('').empty('').optional(),
+    category: Joi.string().trim().allow('').empty('').optional(),
+    maxPrice: Joi.number().min(0).optional(),
+    minPrice: Joi.number().min(0).optional(),
+    sortBy: Joi.string()
+        .valid('name', 'category', 'lowestPrice', 'newest')
+        .default('name'),
+    pageSize: Joi.number().integer().min(1).max(100).default(5),
+    pageNumber: Joi.number().integer().min(1).default(1),
 });
 
+router.get(
+    '/',
+    validate(searchSchema, { location: 'query' }),
+    async (req, res, next) => {
+        try {
+            const {
+                keywords,
+                category,
+                maxPrice,
+                minPrice,
+                sortBy,
+                pageSize,
+                pageNumber,
+            } = req.query;
 
-router.get('/', async (req, res, next) => {
-    try {
-        const products = await findAllProducts();
-        res.status(200).json(products);
-    } catch (err) {
-        next(err);
-    }
-});
+            const result = await searchProducts({
+                keywords,
+                category,
+                maxPrice,
+                minPrice,
+                sortBy,
+                pageSize,
+                pageNumber,
+            });
 
-
-router.get('/:productId', async (req, res, next) => {
-    try {
-        const { productId } = req.params;
-        const product = await findProductById(productId);
-        if (!product) return res.status(404).json({ message: 'Product not found' });
-        res.status(200).json(product);
-    } catch (err) {
-        next(err);
-    }
-});
-
-router.get('/name/:productName', async (req, res, next) => {
-    try {
-        const { productName } = req.params;
-        const product = await findProductByName(productName);
-        if (!product) return res.status(404).json({ message: 'Product not found' });
-        res.status(200).json(product);
-    } catch (err) {
-        next(err);
-    }
-});
-
-router.post('/', async (req, res, next) => {
-    try {
-        const schema = productSchema.fork(['name', 'category', 'price'], (s) => s.required());
-        const { value, error } = schema.validate(req.body, { abortEarly: false });
-        if (error) {
-            return res.status(400).json({ message: 'Validation failed', details: error.details });
+            return res.status(200).json(result);
+        } catch (err) {
+            return next(err);
         }
-        const created = await insertProduct(value);
-        res.status(200).json({ message: 'Created', productId: created._id });
-    } catch (err) {
-        next(err);
     }
-});
-router.patch('/:productId', async (req, res, next) => {
-    try {
-        const { productId } = req.params;
-        const { value, error } = productSchema.min(1).validate(req.body, { abortEarly: false });
-        if (error) {
-            return res.status(400).json({ message: 'Validation failed', details: error.details });
-        }
-        const updated = await updateProduct(productId, value);
-        if (!updated) return res.status(404).json({ message: 'Product not found' });
-        res.status(200).json({ message: 'Updated', productId });
-    } catch (err) {
-        next(err);
-    }
-});
+);
 
-router.delete('/:productId', async (req, res, next) => {
-    try {
-        const { productId } = req.params;
-        const ok = await deleteProduct(productId);
-        if (!ok) return res.status(404).json({ message: 'Product not found' });
-        res.status(200).json({ message: 'Deleted', productId });
-    } catch (err) {
-        next(err);
+router.get(
+    '/name/:productName',
+    isAuthenticated(),
+    async (req, res, next) => {
+        try {
+            const { productName } = req.params;
+            const product = await findProductByName(productName);
+
+            if (!product) {
+                return res.status(404).json({ message: 'Product not found' });
+            }
+
+            return res.status(200).json(product);
+        } catch (err) {
+            return next(err);
+        }
     }
-});
+);
+
+router.get(
+    '/:productId',
+    validId('productId'),
+    isAuthenticated(),
+    async (req, res, next) => {
+        try {
+            const { productId } = req.params;
+            const product = await findProductById(productId);
+
+            if (!product) {
+                return res.status(404).json({ message: 'Product not found' });
+            }
+
+            return res.status(200).json(product);
+        } catch (err) {
+            return next(err);
+        }
+    }
+);
+
+router.post(
+    '/',
+    isAuthenticated(),
+    hasRole('admin'),
+    validate(newProductSchema),
+    async (req, res, next) => {
+        try {
+            const created = await insertProduct(req.body);
+            return res.status(200).json({ message: 'Created', productId: created._id });
+        } catch (err) {
+            if (err?.code === 11000) {
+                return res.status(400).json({ message: 'Product name must be unique' });
+            }
+            return next(err);
+        }
+    }
+);
+
+router.patch(
+    '/:productId',
+    isAuthenticated(),
+    hasRole('admin'),
+    validId('productId'),
+    validate(updateProductSchema),
+    async (req, res, next) => {
+        try {
+            const { productId } = req.params;
+            const updated = await updateProduct(productId, req.body);
+
+            if (!updated) {
+                return res.status(404).json({ message: 'Product not found' });
+            }
+
+            return res.status(200).json({ message: 'Updated', productId });
+        } catch (err) {
+            if (err?.code === 11000) {
+                return res.status(400).json({ message: 'Product name must be unique' });
+            }
+            return next(err);
+        }
+    }
+);
+
+router.delete(
+    '/:productId',
+    isAuthenticated(),
+    hasRole('admin'),
+    validId('productId'),
+    async (req, res, next) => {
+        try {
+            const { productId } = req.params;
+            const deleted = await deleteProduct(productId);
+
+            if (!deleted) {
+                return res.status(404).json({ message: 'Product not found' });
+            }
+
+            return res.status(200).json({ message: 'Deleted', productId });
+        } catch (err) {
+            return next(err);
+        }
+    }
+);
 
 export default router;
 

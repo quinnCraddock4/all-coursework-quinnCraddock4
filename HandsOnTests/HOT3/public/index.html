@@ -71,7 +71,6 @@
                 ),
                 React.createElement('tbody', null,
                     products
-                        .filter(p => p.name && p.name.trim() !== '') // Filter out products with no name
                         .map(p => React.createElement('tr', { key: p._id },
                             React.createElement('td', null, p.name || 'N/A'),
                             React.createElement('td', null, p.description || 'No description'),
