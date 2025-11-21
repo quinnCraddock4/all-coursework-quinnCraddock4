@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "nodemon server.js",
     "start": "node server.js",
-    "test": "vitest run"
+    "test": "vitest run",
+    "seed": "node scripts/seed-products.js",
+    "setup": "node scripts/setup-database.js"
   },
   "keywords": [],
   "author": "",

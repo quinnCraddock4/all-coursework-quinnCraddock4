@@ -50,13 +50,36 @@
             const [error, setError] = useState('');
 
             useEffect(() => {
-                fetch('/api/products')
-                    .then(r => r.ok ? r.json() : Promise.reject(new Error('Failed to load products')))
-                    .then(setProducts)
-                    .catch(err => setError(err.message));
+                // Request all products (set pageSize to 100 to get all products)
+                fetch('/api/products?pageSize=100')
+                    .then(r => {
+                        if (!r.ok) {
+                            return r.json().then(err => Promise.reject(new Error(err.message || 'Failed to load products')));
+                        }
+                        return r.json();
+                    })
+                    .then(data => {
+                        // Handle paginated response (has items property) or array response
+                        const productList = Array.isArray(data) ? data : (data.items || []);
+                        console.log('Loaded products:', productList.length);
+                        setProducts(productList);
+                        if (productList.length === 0) {
+                            setError('No products found');
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Error loading products:', err);
+                        setError(err.message || 'Failed to load products');
+                    });
             }, []);
 
-            if (error) return React.createElement('div', { className: 'error' }, error);
+            if (error) {
+                return React.createElement('div', { className: 'error' }, `Error: ${error}`);
+            }
+
+            if (products.length === 0) {
+                return React.createElement('div', null, 'No products found. Loading...');
+            }
 
             return React.createElement(
                 'table',
@@ -71,11 +94,11 @@
                 ),
                 React.createElement('tbody', null,
                     products
-                        .map(p => React.createElement('tr', { key: p._id },
+                        .map(p => React.createElement('tr', { key: p._id || p.id },
                             React.createElement('td', null, p.name || 'N/A'),
                             React.createElement('td', null, p.description || 'No description'),
                             React.createElement('td', null, p.category || 'Uncategorized'),
-                            React.createElement('td', { className: 'price' }, typeof p.price === 'number' ? p.price.toFixed(2) : 'N/A')
+                            React.createElement('td', { className: 'price' }, typeof p.price === 'number' ? `$${p.price.toFixed(2)}` : 'N/A')
                         ))
                 )
             );

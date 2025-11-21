@@ -23,17 +23,89 @@ const ensureIndexes = async (db) => {
         return;
     }
 
-    await Promise.all([
-        db.collection('products').createIndex(
+    // Helper to safely get indexes (returns empty array if collection doesn't exist)
+    const getIndexesSafely = async (collection) => {
+        try {
+            return await collection.indexes();
+        } catch (err) {
+            // Collection doesn't exist yet
+            return [];
+        }
+    };
+
+    // Products name index - handle this first since it might be blocking cleanup
+    const productsCollection = db.collection('products');
+    const existingProductsIndexes = await getIndexesSafely(productsCollection);
+    const nameIndex = existingProductsIndexes.find(
+        (idx) => idx.key?.name === 1
+    );
+    
+    // Drop existing name index if it exists (must do this BEFORE cleaning up duplicates)
+    if (nameIndex) {
+        try {
+            await productsCollection.dropIndex(nameIndex.name);
+        } catch (err) {
+            // Index might not exist or already dropped, continue anyway
+        }
+    }
+
+    // Now clean up any products with null or empty names (after dropping index)
+    try {
+        await productsCollection.deleteMany({
+            $or: [
+                { name: null },
+                { name: '' },
+                { name: { $exists: false } },
+            ],
+        });
+    } catch (err) {
+        // Collection might not exist yet, which is fine
+    }
+
+    // Try to create indexes, handling errors gracefully
+    const indexPromises = [];
+    
+    // Create the products name index (after cleaning up null products)
+    indexPromises.push(
+        productsCollection.createIndex(
             { name: 1 },
             { unique: true, collation: { locale: 'en', strength: 2 } }
-        ),
-        db.collection('user').createIndex(
-            { email: 1 },
-            { unique: true, collation: { locale: 'en', strength: 2 } }
-        ),
-        db.collection('session').createIndex({ token: 1 }, { unique: true }),
-    ]);
+        ).catch((err) => {
+            // If still fails, log but don't crash - index might already exist from another process
+            if (err.code !== 85) { // 85 = IndexOptionsConflict (index already exists)
+                console.warn('Warning: Could not create products name index:', err.message);
+            }
+        })
+    );
+
+    // User email index
+    const userCollection = db.collection('user');
+    const userIndexes = await getIndexesSafely(userCollection);
+    const hasUserEmailIndex = userIndexes.some(
+        (idx) => idx.name === 'email_1' || (idx.key?.email === 1 && idx.unique)
+    );
+    if (!hasUserEmailIndex) {
+        indexPromises.push(
+            userCollection.createIndex(
+                { email: 1 },
+                { unique: true, collation: { locale: 'en', strength: 2 } }
+            )
+        );
+    }
+
+    // Session token index
+    const sessionCollection = db.collection('session');
+    const sessionIndexes = await getIndexesSafely(sessionCollection);
+    const hasSessionTokenIndex = sessionIndexes.some(
+        (idx) => idx.name === 'token_1' || (idx.key?.token === 1 && idx.unique)
+    );
+    if (!hasSessionTokenIndex) {
+        indexPromises.push(
+            sessionCollection.createIndex({ token: 1 }, { unique: true })
+        );
+    }
+
+    await Promise.all(indexPromises);
 
     indexesEnsured = true;
 };

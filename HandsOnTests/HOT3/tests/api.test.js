@@ -1,9 +1,10 @@
 import { beforeAll, afterAll, beforeEach, describe, expect, it } from 'vitest';
 import request from 'supertest';
-import { MongoMemoryServer } from 'mongodb-memory-server';
+import dotenv from 'dotenv';
 import { MongoClient } from 'mongodb';
 
-let memoryServer;
+dotenv.config();
+
 let createApp;
 let closeDatabase;
 let app;
@@ -54,9 +55,10 @@ const registerAndLoginUser = async ({ fullName, email, password }) => {
 };
 
 beforeAll(async () => {
-    memoryServer = await MongoMemoryServer.create();
-    process.env.DB_URL = memoryServer.getUri();
-    process.env.DB_NAME = 'hot3-test';
+    // Use actual database from .env file
+    if (!process.env.DB_URL || !process.env.DB_NAME) {
+        throw new Error('DB_URL and DB_NAME must be set in .env file');
+    }
 
     const appModule = await import('../app.js');
     createApp = appModule.createApp ?? appModule.default;
@@ -67,9 +69,6 @@ beforeAll(async () => {
 
 afterAll(async () => {
     await closeDatabase();
-    if (memoryServer) {
-        await memoryServer.stop();
-    }
 });
 
 beforeEach(async () => {
