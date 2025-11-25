@@ -172,14 +172,30 @@ const buildProductSort = (sortBy) => {
 };
 
 const applyPriceFilters = (filter, minPrice, maxPrice) => {
-    if (minPrice !== undefined) {
-        filter.price = { ...filter.price, $gte: minPrice };
+    // Convert to numbers and filter out invalid values
+    const min = minPrice !== undefined && minPrice !== null && minPrice !== '' 
+        ? Number(minPrice) 
+        : undefined;
+    const max = maxPrice !== undefined && maxPrice !== null && maxPrice !== '' 
+        ? Number(maxPrice) 
+        : undefined;
+
+    // Only apply filters if we have valid numbers
+    if (min !== undefined && !isNaN(min)) {
+        if (!filter.price) {
+            filter.price = {};
+        }
+        filter.price.$gte = min;
     }
 
-    if (maxPrice !== undefined) {
-        filter.price = { ...filter.price, $lte: maxPrice };
+    if (max !== undefined && !isNaN(max)) {
+        if (!filter.price) {
+            filter.price = {};
+        }
+        filter.price.$lte = max;
     }
 
+    // Clean up empty price filter
     if (filter.price && Object.keys(filter.price).length === 0) {
         delete filter.price;
     }

@@ -8,6 +8,8 @@ const isAuthenticated = () => async (req, res, next) => {
         console.log('=== isAuthenticated middleware called ===');
         console.log('Request method:', req.method);
         console.log('Request path:', req.path);
+        console.log('Request originalUrl:', req.originalUrl);
+        console.log('Request baseUrl:', req.baseUrl);
         console.log('req.headers.cookie:', req.headers.cookie);
         console.log('req.cookies:', req.cookies);
 
