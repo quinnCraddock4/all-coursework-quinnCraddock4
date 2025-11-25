@@ -1,5 +1,4 @@
 import { betterAuth } from 'better-auth';
-import { bearer } from 'better-auth/plugins';
 import { mongodbAdapter } from 'better-auth/adapters/mongodb';
 
 import { connect, getDb, ObjectId } from '../database.js';
@@ -8,6 +7,8 @@ const createAuthInstance = async () => {
     const { db, client } = await connect();
 
     return betterAuth({
+        baseURL: process.env.BASE_URL || 'http://localhost:2023',
+        basePath: '/api/auth',
         database: mongodbAdapter(db, { client }),
         emailAndPassword: {
             enabled: true,
@@ -27,7 +28,6 @@ const createAuthInstance = async () => {
                 },
             },
         },
-        plugins: [bearer()],
     });
 };
 

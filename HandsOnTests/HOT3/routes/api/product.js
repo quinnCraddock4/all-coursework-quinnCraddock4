@@ -24,11 +24,13 @@ const newProductSchema = Joi.object({
 });
 
 const updateProductSchema = Joi.object({
-    name: Joi.string().trim().min(1),
-    description: Joi.string().trim().allow(''),
-    category: Joi.string().trim().min(1),
-    price: Joi.number().min(0),
-}).min(1);
+    name: Joi.string().trim().min(1).optional(),
+    description: Joi.string().trim().allow('').optional(),
+    category: Joi.string().trim().min(1).optional(),
+    price: Joi.number().min(0).optional(),
+}).min(1).messages({
+    'object.min': 'At least one field (name, description, category, or price) must be provided',
+});
 
 const searchSchema = Joi.object({
     keywords: Joi.string().trim().allow('').empty('').optional(),

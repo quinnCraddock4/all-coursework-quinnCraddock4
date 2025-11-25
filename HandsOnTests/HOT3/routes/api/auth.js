@@ -5,7 +5,7 @@ import { fromNodeHeaders } from 'better-auth/node';
 import validate from '../../middleware/validate.js';
 import isAuthenticated from '../../middleware/isAuthenticated.js';
 import { auth } from '../../auth/index.js';
-import { findUserByEmail, findUserById } from '../../database.js';
+import { findUserByEmail, findUserById, getDb, ObjectId } from '../../database.js';
 
 const router = express.Router();
 
@@ -70,8 +70,46 @@ router.post(
                 headers: fromNodeHeaders(req.headers),
             });
 
-            const token = signInResult.token;
+            // Query the session from database to get the token
+            const db = await getDb();
+            const userId = new ObjectId(signInResult.user.id);
+            const sessionDoc = await db.collection('session').findOne({
+                userId: userId,
+            }, { sort: { expiresAt: -1 } }); // Get most recent session
+
+            // Set the session cookie if we found a session
+            // Better-auth uses different cookie names, try the most common ones
+            if (sessionDoc && sessionDoc.token) {
+                // Try the session token as the cookie value
+                const cookieValue = sessionDoc.token;
+                
+                // Better-auth might use different cookie names - try common ones
+                // The cookie name format is usually: better-auth.session_token or session_token
+                res.cookie('better-auth.session_token', cookieValue, {
+                    httpOnly: true,
+                    secure: process.env.NODE_ENV === 'production',
+                    sameSite: 'lax',
+                    maxAge: sessionDoc.expiresAt ? 
+                        Math.max(0, sessionDoc.expiresAt.getTime() - Date.now()) : 
+                        60 * 60 * 24 * 7 * 1000, // 7 days default
+                });
+                
+                // Also try setting it as session_token (without prefix) in case that's what better-auth expects
+                res.cookie('session_token', cookieValue, {
+                    httpOnly: true,
+                    secure: process.env.NODE_ENV === 'production',
+                    sameSite: 'lax',
+                    maxAge: sessionDoc.expiresAt ? 
+                        Math.max(0, sessionDoc.expiresAt.getTime() - Date.now()) : 
+                        60 * 60 * 24 * 7 * 1000,
+                });
+            }
+
             let user = await findUserById(signInResult.user.id);
+
+            if (!user && signInResult.user.email) {
+                user = await findUserByEmail(signInResult.user.email);
+            }
 
             if (!user) {
                 user = {
@@ -87,7 +125,6 @@ router.post(
 
             return res.status(200).json({
                 message: 'Signed in',
-                token,
                 user,
             });
         } catch (err) {
@@ -108,18 +145,34 @@ router.post(
     isAuthenticated(),
     async (req, res, next) => {
         try {
-            const token = req.session?.token;
+            // Get the session token from cookies
+            const sessionToken = req.cookies['better-auth.session_token'] || 
+                                req.cookies['session_token'] ||
+                                (req.headers.cookie?.match(/better-auth\.session_token=([^;]+)/)?.[1]) ||
+                                (req.headers.cookie?.match(/session_token=([^;]+)/)?.[1]);
 
-            if (token) {
-                const headers = fromNodeHeaders({
-                    ...req.headers,
-                    authorization: `Bearer ${token}`,
+            // If we have a session token, delete it from the database
+            if (sessionToken) {
+                const db = await getDb();
+                await db.collection('session').deleteOne({
+                    token: sessionToken,
                 });
+            }
 
+            // Also try better-auth's signOut
+            try {
+                const headers = fromNodeHeaders(req.headers);
                 await auth.api.signOut({
                     headers,
                 });
+            } catch (err) {
+                // Ignore errors from better-auth signOut if we already deleted the session
+                console.log('Better-auth signOut error (ignored):', err.message);
             }
+
+            // Clear the cookies
+            res.clearCookie('better-auth.session_token');
+            res.clearCookie('session_token');
 
             return res.status(200).json({ message: 'Signed out' });
         } catch (err) {

@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import debug from 'debug';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -23,7 +24,8 @@ export const createApp = async () => {
 
     const app = express();
 
-    app.use(cors());
+    app.use(cors({ credentials: true, origin: true }));
+    app.use(cookieParser());
     app.use(express.json());
 
     app.use(express.static(path.join(__dirname, 'public')));
